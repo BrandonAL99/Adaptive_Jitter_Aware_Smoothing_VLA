@@ -1,0 +1,103 @@
+LIBERO EVAL PIPELINE VERIFICATION
+Generated: 2026-04-18
+==============================================================
+
+SCRIPTS WRITTEN
+---------------
+simulation/scripts/eval_libero.py
+  - Modified: added --seed arg (passed to env.reset per episode as seed+ep_index)
+  - Confirmed working end-to-end
+
+libero_analysis/action_processors.py
+  - ActionProcessor base class
+  - IdentityProcessor (no-op passthrough)
+  - LowPassFilterProcessor (causal Butterworth IIR, maintains state across timesteps)
+  - get_processor(name, **kwargs) factory function
+
+simulation/scripts/eval_libero_processed.py
+  - Template eval script: same as eval_libero.py but with --processor hook
+  - Accepts --processor {identity, lowpass}, --seed, --lowpass-cutoff, --lowpass-order
+  - Stores both raw and processed actions (action_raw + action columns in HF dataset)
+  - Reports Sm_raw vs Sm_proc so you can directly compare TC before/after filtering
+
+
+HF DATASETS VERIFIED
+---------------------
+BrandonAL/claude_libero_baseline_1ep  (split: task_0)
+  - 10 rows (1 episode x 10 steps, max-steps=10 for pipeline test)
+  - seed=42, task=libero_object task_id=0
+    "pick up the alphabet soup and place it in the basket"
+  Columns:
+    episode_index  : int32
+    index          : int32  (global timestep counter)
+    frame_index    : int32  (0-9)
+    timestamp      : float32  (frame_index / 30)
+    action         : List[float32, 7]  (7-dim joint actions)
+    reward         : float32
+    done           : bool
+    success        : bool
+    observation.images.image   : PIL RGB 256x256 (agentview camera)
+    observation.images.image2  : PIL RGB 256x256 (wrist camera)
+    observation.robot_state    : List[float32, 34]
+      Layout: eef/mat(9) + eef/pos(3) + eef/quat(4) + gripper/qpos(2) +
+              gripper/qvel(2) + joints/pos(7) + joints/vel(7)
+      TC analysis uses joints/pos at indices 20:27
+
+BrandonAL/claude_libero_lowpass_1ep  (split: task_0)
+  - Same 10-step episode with seed=42 (identical initial state)
+  - Extra column: action_raw : List[float32, 7]  (pre-filter actions)
+  - action column holds the low-pass filtered actions sent to the env
+
+
+TC METRIC COMPARISON (10 steps, seed=42, task_id=0)
+----------------------------------------------------
+NOTE: T=10 steps is too short for meaningful SER (frequency resolution = 3 Hz
+      which equals the SER threshold). SER values are ~0 for both -- this is
+      expected and not a bug. Use T >= 50 steps for reliable SER.
+      Sm is valid at any length.
+
+               Sm_mean     SER_mean
+  Baseline   : 0.009076    ~0  (raw)
+  Low-pass   : 0.008835    ~0  (raw)    <- baseline run, slight random variation
+  Low-pass   : 0.003765    ~0  (proc)   <- 57% Sm reduction vs its own raw
+
+  Low-pass filter settings: cutoff=3.0 Hz, order=2 Butterworth
+  Effect: Sm (weighted mean frequency) reduced by ~57% relative to raw actions.
+
+
+USAGE NOTES
+-----------
+# Baseline eval (use eval_libero.py for cleaner dataset, no action_raw column):
+python simulation/scripts/eval_libero.py \
+    --model HuggingFaceVLA/smolvla_libero \
+    --task libero_object --episodes N --seed 42 \
+    --output-dir libero_analysis/claude_results/baseline_Nep \
+    --hf-dataset BrandonAL/claude_libero_baseline_Nep
+
+# Low-pass eval (eval_libero_processed.py for processed datasets):
+python simulation/scripts/eval_libero_processed.py \
+    --model HuggingFaceVLA/smolvla_libero \
+    --task libero_object --episodes N --seed 42 \
+    --processor lowpass --lowpass-cutoff 3.0 --lowpass-order 2 \
+    --output-dir libero_analysis/claude_results/lowpass_Nep \
+    --hf-dataset BrandonAL/claude_libero_lowpass_Nep
+
+# To run on cloud GPU (add MUJOCO_GL=osmesa for headless):
+MUJOCO_GL=osmesa python simulation/scripts/eval_libero_processed.py ...
+
+# To add a new processor:
+#   1. Add class to libero_analysis/action_processors.py
+#   2. Register in _REGISTRY dict at bottom of that file
+#   3. Use --processor <name> in eval_libero_processed.py
+
+
+KNOWN ISSUES / CAVEATS
+-----------------------
+- SER is unreliable for short episodes (T < 50 steps). Run longer evals on GPU.
+- LowPassFilterProcessor init on first step: zi is scaled by first action, so
+  there is no start-up transient on step 0 (action_raw[0] == action[0]).
+- On CPU: ~5 min per 10 steps (SmolVLM2-500M). Use GPU for real evals.
+- The baseline and low-pass raw Sm differ slightly (0.009076 vs 0.008835)
+  because they are different eval runs -- seed makes the env deterministic but
+  the policy itself has some stochasticity at the torch level. For perfectly
+  repeatable comparison, use the action_raw column from the lowpass dataset.

@@ -1,0 +1,44 @@
+<mujoco model="pick_place">
+  <!--
+    Task: pick up the red cube and place it inside the box.
+    Success: 0.5 for grasping cube, 0.5 for placing in box.
+
+    Inherits world geometry from world_base.xml via include.
+    MuJoCo merges <include> content into the parent document.
+  -->
+  <include file="../world_base.xml"/>
+
+  <asset>
+    <material name="mat_cube_red" rgba="0.85 0.12 0.12 1"/>
+    <material name="mat_box"      rgba="0.76 0.60 0.42 1"/>
+  </asset>
+
+  <worldbody>
+    <!-- ── Red cube (~3cm) ──────────────────────────────────────────── -->
+    <!-- Spawned in front of robot on mat; randomise in pick_place_env.py -->
+    <body name="cube_red" pos="0.05 0.0 0.845">
+      <freejoint name="cube_red_joint"/>
+      <geom name="cube_red_geom" type="box" size="0.015 0.015 0.015"
+            material="mat_cube_red" mass="0.05"
+            contype="1" conaffinity="1" condim="4"/>
+    </body>
+
+    <!-- ── Target box (right side, base of robot per physical setup) ── -->
+    <!-- Replace geoms with type="mesh" mesh="box_right" once STL ready -->
+    <body name="box_right" pos="0.20 -0.15 0.812">
+      <!-- Bottom -->
+      <geom name="box_bottom" type="box" size="0.045 0.035 0.003"
+            pos="0 0 0" material="mat_box" contype="1" conaffinity="1"/>
+      <!-- Walls -->
+      <geom name="box_wall_front" type="box" size="0.045 0.003 0.025"
+            pos="0  0.038 0.025" material="mat_box"/>
+      <geom name="box_wall_back"  type="box" size="0.045 0.003 0.025"
+            pos="0 -0.038 0.025" material="mat_box"/>
+      <geom name="box_wall_left"  type="box" size="0.003 0.035 0.025"
+            pos="-0.048 0 0.025" material="mat_box"/>
+      <geom name="box_wall_right" type="box" size="0.003 0.035 0.025"
+            pos=" 0.048 0 0.025" material="mat_box"/>
+    </body>
+  </worldbody>
+
+</mujoco>

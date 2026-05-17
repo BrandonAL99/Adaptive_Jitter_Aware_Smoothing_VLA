@@ -1,0 +1,60 @@
+<mujoco model="sorting">
+  <!--
+    Task: sort red cube into right box, blue cube into left box.
+    Success: 0.25 per cube grasped, 0.25 per cube correctly sorted (max 1.0).
+  -->
+  <include file="world_base.xml"/>
+
+  <asset>
+    <material name="mat_cube_red"  rgba="0.85 0.12 0.12 1"/>
+    <material name="mat_cube_blue" rgba="0.12 0.25 0.85 1"/>
+    <material name="mat_box"       rgba="0.76 0.60 0.42 1"/>
+  </asset>
+
+  <worldbody>
+    <!-- ── Red cube ──────────────────────────────────────────────────── -->
+    <body name="cube_red" pos="0.04 0.04 0.845">
+      <freejoint name="cube_red_joint"/>
+      <geom name="cube_red_geom" type="box" size="0.015 0.015 0.015"
+            material="mat_cube_red" mass="0.05"
+            contype="1" conaffinity="1" condim="4"/>
+    </body>
+
+    <!-- ── Blue cube ─────────────────────────────────────────────────── -->
+    <body name="cube_blue" pos="-0.04 0.04 0.845">
+      <freejoint name="cube_blue_joint"/>
+      <geom name="cube_blue_geom" type="box" size="0.015 0.015 0.015"
+            material="mat_cube_blue" mass="0.05"
+            contype="1" conaffinity="1" condim="4"/>
+    </body>
+
+    <!-- ── Target box (left side) ──────────────────────────────────── -->
+    <body name="box_right" pos="0.05 -0.33 0.812">
+      <!-- OBJ visual: pos centres mesh on body origin, bottom at body z -->
+      <geom name="right_box_virtual" type="mesh" mesh="box_mesh"
+            euler="1.5708 0 0" pos="-0.821 -0.039 -0.743"
+            rgba="0.76 0.60 0.42 1" contype="0" conaffinity="0"/>
+      <!-- Invisible collision: bottom + walls -->
+      <geom name="right_box_bottom"     type="box" size="0.0475 0.0355 0.003" pos="-0.032 0.038 0.003"        rgba="0 0 0 0" contype="1" conaffinity="1" friction="0.3 0.05 0.01"/>
+      <geom name="right_box_wall_front" type="box" size="0.0475 0.003 0.022" pos="-0.032  0.0772 0.025" rgba="0 0 0 0" contype="1" conaffinity="1" friction="0.1 0.01 0.001"/>
+      <geom name="right_box_wall_back"  type="box" size="0.0475 0.003 0.022" pos="-0.032  0.0032 0.025" rgba="0 0 0 0" contype="1" conaffinity="1" friction="0.1 0.01 0.001"/>
+      <geom name="right_box_wall_left"  type="box" size="0.003 0.0355 0.022" pos="-0.081 0.0402 0.025" rgba="0 0 0 0" contype="1" conaffinity="1" friction="0.1 0.01 0.001"/>
+      <geom name="right_box_wall_right" type="box" size="0.003 0.0355 0.022" pos="0.018 0.0402 0.025" rgba="0 0 0 0" contype="1" conaffinity="1" friction="0.1 0.01 0.001"/>
+    </body>
+
+    <!-- ── Target box (right side) ──────────────────────────────────── -->
+    <body name="box_left" pos="0.145 -0.33 0.812">
+      <!-- OBJ visual: pos centres mesh on body origin, bottom at body z -->
+      <geom name="left_box_visual" type="mesh" mesh="box_mesh"
+            euler="1.5708 0 0" pos="-0.821 -0.039 -0.743"
+            rgba="0.76 0.60 0.42 1" contype="0" conaffinity="0"/>
+      <!-- Invisible collision: bottom + walls -->
+      <geom name="left_box_bottom"     type="box" size="0.0475 0.0355 0.003" pos="-0.032 0.038 0.003"        rgba="0 0 0 0" contype="1" conaffinity="1" friction="0.3 0.05 0.01"/>
+      <geom name="left_box_wall_front" type="box" size="0.0475 0.003 0.022" pos="-0.032  0.0772 0.025" rgba="0 0 0 0" contype="1" conaffinity="1" friction="0.1 0.01 0.001"/>
+      <geom name="left_box_wall_back"  type="box" size="0.0475 0.003 0.022" pos="-0.032  0.0032 0.025" rgba="0 0 0 0" contype="1" conaffinity="1" friction="0.1 0.01 0.001"/>
+      <geom name="left_box_wall_left"  type="box" size="0.003 0.0355 0.022" pos="-0.081 0.0402 0.025" rgba="0 0 0 0" contype="1" conaffinity="1" friction="0.1 0.01 0.001"/>
+      <geom name="left_box_wall_right" type="box" size="0.003 0.0355 0.022" pos="0.018 0.0402 0.025" rgba="0 0 0 0" contype="1" conaffinity="1" friction="0.1 0.01 0.001"/>
+    </body>
+  </worldbody>
+
+</mujoco>

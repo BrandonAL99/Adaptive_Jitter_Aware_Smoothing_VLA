@@ -1,0 +1,141 @@
+% ── TC Metric Definitions — Method Section ────────────────────────────────────
+% Place inside your Methods chapter/section.
+% Requires: amsmath
+
+\subsection{Temporal Consistency Metrics}
+
+To quantify jitter in robot action trajectories, seven temporal consistency (TC)
+metrics were evaluated. All metrics are defined such that a higher value
+corresponds to greater jitter, and are computed per joint then averaged across
+all $J = 6$ joints. Let $a_j[t]$ denote the commanded joint angle for joint $j$
+at timestep $t$, with $T$ total timesteps and sampling period $\Delta t =
+1/30$~s.
+
+\subsubsection{Mean Absolute Consecutive Difference (MACD)}
+
+\begin{equation}
+    \text{MACD} = \frac{1}{(T-1)\,J}
+    \sum_{t=1}^{T-1} \sum_{j=1}^{J} \bigl|a_j[t] - a_j[t-1]\bigr|
+    \label{eq:macd}
+\end{equation}
+
+MACD measures the average step-to-step change in commanded joint position. It is
+simple and parameter-free, directly reflecting how much each action command
+differs from the previous one.
+
+\subsubsection{Normalised Jerk}
+
+Jerk is the third derivative of position with respect to time and is a
+well-established measure of motion smoothness in robotics and motor
+control~\cite{flash1985coordination}. It is approximated here using finite
+differences:
+
+\begin{equation}
+    \text{Jerk} = \frac{1}{J} \sum_{j=1}^{J}
+    \frac{1}{T-3} \sum_{t} \left|
+        \frac{\Delta^3 a_j[t]}{\Delta t^3}
+    \right| \cdot \frac{1}{\mathrm{range}(a_j)}
+    \label{eq:jerk}
+\end{equation}
+
+where $\Delta^3$ denotes the third-order finite difference and
+$\mathrm{range}(a_j) = \max_t a_j[t] - \min_t a_j[t]$ normalises by the
+signal range to make the metric scale-independent across joints.
+
+\subsubsection{Direction Change Count (DCC)}
+
+\begin{equation}
+    \text{DCC} = \frac{1}{J} \sum_{j=1}^{J}
+    \frac{1}{T-2} \sum_{t=2}^{T-1}
+    \mathbf{1}\bigl[\,\mathrm{sgn}(\Delta a_j[t]) \neq \mathrm{sgn}(\Delta a_j[t-1])\,\bigr]
+    \label{eq:dcc}
+\end{equation}
+
+DCC counts the fraction of timesteps at which the direction of motion reverses
+for each joint. This captures oscillatory back-and-forth behaviour that may be
+missed by frequency-domain metrics when the oscillation amplitude is small.
+
+\subsubsection{Spectral Entropy (SE)}
+
+Spectral entropy applies the Shannon entropy~\cite{shannon1948mathematical} to
+the normalised power spectrum of the action signal:
+
+\begin{equation}
+    \text{SE} = -\frac{1}{\log_2(N/2+1)}
+    \sum_{f} p(f)\log_2 p(f),
+    \qquad
+    p(f) = \frac{|F(f)|^2}{\sum_f |F(f)|^2}
+    \label{eq:se}
+\end{equation}
+
+where $F(f)$ is the discrete Fourier transform of the mean-subtracted signal
+and the prefactor normalises SE to $[0, 1]$. A smooth signal concentrates
+energy at low frequencies (low SE); a jittery signal spreads energy across the
+spectrum (high SE).
+
+\subsubsection{Weighted Mean Frequency (Sm)}
+
+\begin{equation}
+    \text{Sm} = \frac{2}{N\,f_s} \sum_{f} |F(f)| \cdot f
+    \label{eq:sm}
+\end{equation}
+
+Sm is the amplitude-weighted mean frequency of the action signal, where $f_s =
+30$~Hz is the sampling rate and the factor $2/N$ normalises for the FFT length.
+Higher Sm indicates that more signal energy resides at high frequencies,
+corresponding to jittery motion. Sm is used as the primary TC metric throughout
+training and evaluation in this work.
+
+\subsubsection{Signal Energy Ratio (SER)}
+
+\begin{equation}
+    \text{SER} = \frac{\sum_{f \leq f_{\text{th}}} |F(f)|^2}{\sum_{f} |F(f)|^2}
+    \label{eq:ser}
+\end{equation}
+
+SER measures the fraction of signal energy contained below a threshold
+frequency $f_{\text{th}} = 1$~Hz, chosen to separate intentional low-frequency
+robot motion from high-frequency jitter. Higher raw SER indicates a smoother
+signal; in the comparative evaluation (Table~\ref{tab:tc_real}), $1-\text{SER}$
+is reported to maintain the convention that higher values correspond to greater
+jitter.
+
+\subsubsection{Autocorrelation Decay Rate (ADR)}
+
+ADR fits an exponential decay to the normalised autocorrelation function:
+
+\begin{equation}
+    R(\tau) \approx e^{-\lambda\tau}
+    \implies
+    \lambda = -\frac{\mathrm{d}}{\mathrm{d}\tau}\log R(\tau)
+    \label{eq:adr}
+\end{equation}
+
+The decay constant $\lambda$ (s$^{-1}$) is estimated by least-squares regression
+on $\log R(\tau)$ over lags $\tau \in [0,\, \min(T/2,\, 50)]\,\Delta t$. A
+smooth trajectory remains self-correlated over long lags (low $\lambda$); a
+jittery trajectory loses correlation quickly (high $\lambda$). ADR was found to
+be non-monotonic on synthetic data and was excluded from the primary evaluation.
+
+% ── Bibliography entries (add to your .bib file) ──────────────────────────────
+%
+% @article{flash1985coordination,
+%   author  = {Flash, Tamar and Hogan, Neville},
+%   title   = {The coordination of arm movements: an experimentally confirmed
+%              mathematical model},
+%   journal = {Journal of Neuroscience},
+%   volume  = {5},
+%   number  = {7},
+%   pages   = {1688--1703},
+%   year    = {1985}
+% }
+%
+% @article{shannon1948mathematical,
+%   author  = {Shannon, Claude E.},
+%   title   = {A mathematical theory of communication},
+%   journal = {Bell System Technical Journal},
+%   volume  = {27},
+%   number  = {3},
+%   pages   = {379--423},
+%   year    = {1948}
+% }

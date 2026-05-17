@@ -1,0 +1,19 @@
+Place environment STL mesh files here as you create them.
+
+Planned meshes for the physical setup:
+  table.stl           <- black desk surface
+  desk_mat.stl        <- grey circle mat on top of desk
+  box_left.stl        <- cardboard box (left, for blue cube in sorting)
+  box_right.stl       <- cardboard box (right, for red cube in sorting)
+  cube_red.stl        <- red cube (~3cm sides)
+  cube_blue.stl       <- blue cube (~3cm sides)
+
+Once STLs are ready:
+  1. Add <mesh> entries in mjcf/world_base.xml under <asset>
+  2. Replace the placeholder box/cylinder geoms in the scene XMLs
+     with <geom type="mesh" mesh="your_mesh_name"/>
+
+Notes:
+  - Export from CAD/Blender in meters (MuJoCo uses SI units)
+  - Origin should be at the geometric centre or bottom face as appropriate
+  - Simplify mesh polygon count for simulation performance

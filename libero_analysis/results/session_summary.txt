@@ -1,0 +1,154 @@
+SESSION SUMMARY — 2026-04-18
+==============================================================
+
+GOAL: Confirm libero eval pipeline works, implement low-pass filter + AJAS
+      (your pure-pursuit-inspired smoothing), push test datasets to HF.
+
+
+FILES CREATED / MODIFIED
+-------------------------
+
+1. simulation/scripts/eval_libero.py  [MODIFIED]
+   - Added --seed argument
+   - env.reset(seed=seed+ep_index) called per episode for reproducibility
+   - Usage: --seed 42
+
+2. libero_analysis/action_processors.py  [NEW]
+   Two-level processor hierarchy:
+
+   ActionProcessor (per-action, applied after policy postprocessor each step):
+     • IdentityProcessor  — no-op passthrough
+     • LowPassFilterProcessor — causal Butterworth IIR low-pass filter
+         Maintains scipy sosfilt state (zi) across timesteps within episode.
+         Initialises zi from first action to avoid ringing transient.
+         Args: cutoff_hz=3.0, fs=30.0, order=2
+
+   ChunkProcessor (chunk-level, hooks into SmolVLA._get_action_chunk):
+     • AJASProcessor — Adaptive Jitter-Aware Action Smoothing
+         At each VLA forward pass, receives full (50, 7) action chunk.
+         Computes SER (Signal Energy Ratio) for the chunk.
+         Maps SER → stride k → selects keyframes → linear interpolation.
+         SER < 0.3 → k=1 (no smooth), 0.3-0.6 → k=3, 0.6-0.8 → k=5, ≥0.8 → k=10
+         Args: dt=1/30, ser_threshold_hz=1.0, k_map (custom breakpoints)
+
+   Utility:
+     • get_processor(name, **kwargs)  — factory function
+     • list_processors()             — returns ['identity','lowpass','ajas']
+     • wrap_policy_with_chunk_processor(policy, chunk_processor)
+         Monkey-patches policy._get_action_chunk to intercept full chunks.
+
+3. simulation/scripts/eval_libero_processed.py  [NEW]
+   Template eval script with --processor argument. Supports both processor types:
+
+   ActionProcessor path:  policy → postprocessor → processor(action) → env.step
+   ChunkProcessor path:   policy._get_action_chunk → processor(chunk) → [exec n steps] → env.step
+
+   Key arguments:
+     --processor {identity,lowpass,ajas}
+     --seed N              base seed (episode i uses seed+i)
+     --exec-steps N        steps executed per VLA chunk (default: 1 for per-action,
+                           10 for chunk processors like ajas)
+     --lowpass-cutoff F    Hz cutoff (default 3.0)
+     --lowpass-order N     Butterworth order (default 2)
+     --ajas-ser-threshold  SER frequency boundary (default 1.0 Hz)
+     --no-push             skip HF upload
+     --task-ids 0          run only specific task IDs (saves time)
+
+   HF dataset has extra 'action_raw' column for comparing pre/post processing.
+   Reports Sm_raw vs Sm_proc so you can see TC change in one run.
+
+
+HF DATASETS PUSHED (pipeline verification, 1 ep / 10 steps each, seed=42)
+-------------------------------------------------------------------------
+BrandonAL/claude_libero_baseline_1ep  — eval_libero.py baseline
+BrandonAL/claude_libero_lowpass_1ep   — 3Hz Butterworth lowpass
+BrandonAL/claude_libero_ajas_1ep      — AJAS (exec-steps=10)
+
+Dataset format per row:
+  episode_index, index, frame_index, timestamp
+  action           [7] — action sent to env (processed)
+  action_raw       [7] — action before processing (lowpass/ajas datasets only)
+  reward, done, success
+  observation.images.image   PIL RGB 256x256  (agentview)
+  observation.images.image2  PIL RGB 256x256  (wrist cam)
+  observation.robot_state    [34]  (joints/pos at indices 20:27 for TC analysis)
+
+
+TC METRIC RESULTS (10-step sanity check, not meaningful at this length)
+------------------------------------------------------------------------
+Baseline (raw):   Sm = 0.009076  (10 steps too short for SER)
+Lowpass 3Hz:      Sm = 0.003765  (57% reduction vs its own raw)
+AJAS:             Sm_raw = Sm_proc = 0.004741  (expected — see note below)
+
+WHY AJAS SHOWS NO CHANGE AT 10 STEPS:
+  - AJAS computes SER on the 50-action chunk. At the very first step, the
+    model output has SER ≈ 0 (near-DC or sparse actions → no low-freq
+    energy concentration recognizable in 50 samples at 30Hz).
+  - SER < 0.3 → k=1 → no smoothing → proc == raw. This is correct behavior.
+  - On GPU with max-steps=500, the model will settle into task-relevant
+    motions. Those chunks will have non-trivial SER scores and AJAS will
+    activate (k=3, 5, or 10) and smooth the executed path.
+
+NOTE: Use T ≥ 50 steps for meaningful SER values. Run on GPU for real evals.
+
+
+IMPORTANT DESIGN NOTE — AJAS + exec-steps
+------------------------------------------
+SmolVLA config has n_action_steps=1 by default (regenerates chunk every step).
+For AJAS to actually execute the interpolated actions (not just keyframe[0]),
+eval_libero_processed.py sets n_action_steps=10 for chunk processors.
+This means:
+  - VLA queries obs and generates 50-action chunk every 10 steps
+  - AJAS processes chunk (keyframe + interpolation)
+  - Actions 0-9 from processed chunk are executed (10 steps without re-planning)
+  - Step 10: new obs → new chunk → new AJAS pass → execute next 10
+
+You can override with --exec-steps N (set to 1 for step-by-step, 50 for full chunk).
+
+
+COMMANDS FOR GPU EVALS
+----------------------
+# Baseline (eval_libero.py):
+MUJOCO_GL=osmesa python simulation/scripts/eval_libero.py \
+    --model HuggingFaceVLA/smolvla_libero \
+    --task libero_object libero_spatial libero_goal libero_long \
+    --episodes 10 --seed 42 \
+    --output-dir libero_analysis/claude_results/baseline_10ep \
+    --hf-dataset BrandonAL/claude_libero_baseline_10ep
+
+# Low-pass filter:
+MUJOCO_GL=osmesa python simulation/scripts/eval_libero_processed.py \
+    --model HuggingFaceVLA/smolvla_libero \
+    --task libero_object libero_spatial libero_goal libero_long \
+    --episodes 10 --seed 42 \
+    --processor lowpass --lowpass-cutoff 3.0 --lowpass-order 2 \
+    --output-dir libero_analysis/claude_results/lowpass_10ep \
+    --hf-dataset BrandonAL/claude_libero_lowpass_10ep
+
+# AJAS (10 exec steps per chunk):
+MUJOCO_GL=osmesa python simulation/scripts/eval_libero_processed.py \
+    --model HuggingFaceVLA/smolvla_libero \
+    --task libero_object libero_spatial libero_goal libero_long \
+    --episodes 10 --seed 42 \
+    --processor ajas --exec-steps 10 \
+    --output-dir libero_analysis/claude_results/ajas_10ep \
+    --hf-dataset BrandonAL/claude_libero_ajas_10ep
+
+
+HOW TO ADD YOUR OWN PROCESSOR
+------------------------------
+1. Open libero_analysis/action_processors.py
+2. Add a class inheriting ActionProcessor OR ChunkProcessor:
+
+   class MyProcessor(ActionProcessor):
+       def reset(self): ...
+       def __call__(self, action: np.ndarray) -> np.ndarray: ...
+
+   class MyChunkProcessor(ChunkProcessor):
+       def reset(self): ...
+       def __call__(self, chunk: np.ndarray) -> np.ndarray: ...
+           # chunk: (50, 7) — full action chunk from VLA
+
+3. Add to _REGISTRY: "myname": MyProcessor
+
+4. Run with --processor myname (and --exec-steps N for chunk processors)

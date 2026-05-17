@@ -1,0 +1,88 @@
+LIBERO EVALUATION DATASETS — SUMMARY
+================================================================================
+Generated: 2026-04-21
+All datasets: HuggingFace @ https://huggingface.co/BrandonAL
+
+EVALUATION METHOD KEY
+─────────────────────
+n_action_steps : how many actions executed per policy inference call
+chunk_size     : total actions generated per inference call (SmolVLA = 50)
+exec_steps=1   → policy re-queries observations every step  (original lerobot eval)
+exec_steps=50  → full chunk executed before re-querying      (thesis experiments)
+DT             : 1/30 s (all thesis datasets use lerobot LiberoEnvConfig fps=30)
+
+NOTE on eval_HFvla_* datasets: created with lerobot's native eval script which
+stamped timestamps at render_fps=80. Action data is valid; DT for TC metrics
+should be 1/30 (one action per env.step call confirmed from eval log: n_action_steps=1).
+
+================================================================================
+DATASET                                       ENVS           EPS  EXEC  CHUNK  PURPOSE IN REPORT
+                                                          TOTAL  STEPS   SIZE
+────────────────────────────────────────────────────────────────────────────────────────────────
+BrandonAL/eval_HFvla_smolvla_libero_object    object        100     1    50   Baseline: original lerobot eval
+BrandonAL/eval_HFvla_smolvla_libero_spatial   spatial       100     1    50     pipeline (n_action_steps=1).
+BrandonAL/eval_HFvla_smolvla_libero_goal      goal          100     1    50     Used for initial TC metric
+BrandonAL/eval_HFvla_smolvla_libero_long      long          100     1    50     analysis only. NOT used for
+                                                                                processor comparisons (different
+                                                                                execution mode to thesis evals).
+────────────────────────────────────────────────────────────────────────────────────────────────
+BrandonAL/eval_smolvla_chunk50_libero_object  object        100    50    50   PRIMARY BASELINE for all
+BrandonAL/eval_smolvla_chunk50_libero_spatial spatial       100    50    50   processor comparisons. Full
+BrandonAL/eval_smolvla_chunk50_libero_goal    goal          100    50    50   50-action chunk executed per
+BrandonAL/eval_smolvla_chunk50_libero_long    long          100    50    50   inference. seed=1000.
+                                                                              Required for lowpass/AJAS
+                                                                              comparison (chunk-level methods
+                                                                              need chunk to be executed).
+────────────────────────────────────────────────────────────────────────────────────────────────
+BrandonAL/eval_smolvla_chunk50_lowpass_2hz_*  object/       100    50    50   Lowpass filter baseline:
+  (4 suite datasets, naming TBD)              spatial/             cutoff=2Hz, order=2.
+                                              goal/long            Aggressive smoothing. Expected:
+                                                                   higher TC improvement, potential
+                                                                   success rate drop from lag.
+────────────────────────────────────────────────────────────────────────────────────────────────
+BrandonAL/eval_smolvla_chunk50_lowpass_4hz_*  object/       100    50    50   Lowpass filter baseline:
+  (4 suite datasets, naming TBD)              spatial/             cutoff=4Hz, order=2.
+                                              goal/long            Moderate smoothing. Expected
+                                                                   sweet spot for TC vs SR tradeoff.
+────────────────────────────────────────────────────────────────────────────────────────────────
+BrandonAL/eval_smolvla_chunk50_lowpass_6hz_*  object/       100    50    50   Lowpass filter baseline:
+  (4 suite datasets, naming TBD)              spatial/             cutoff=6Hz, order=2.
+                                              goal/long            Light smoothing. Expected:
+                                                                   small TC improvement, minimal
+                                                                   success rate impact.
+────────────────────────────────────────────────────────────────────────────────────────────────
+BrandonAL/eval_smolvla_chunk50_ajas_*         object/       100    50    50   AJAS (proposed method):
+  (4 suite datasets, naming TBD)              spatial/             Adaptive Jitter-Aware Action
+                                              goal/long            Smoothing. Chunk-level processor.
+                                                                   Lookahead stride k varies with
+                                                                   SER score of each chunk.
+                                                                   Goal: match lowpass TC improvement
+                                                                   without success rate penalty.
+────────────────────────────────────────────────────────────────────────────────────────────────
+BrandonAL/eval_my_smolvla_libero_object       object         50     1    50   Early experiment: finetuned
+                                                                              model (BrandonAL fork).
+                                                                              Not used in final comparisons.
+────────────────────────────────────────────────────────────────────────────────────────────────
+BrandonAL/smolvla_libero_chunk50_test         object         10    50    50   Smoke test datasets (single
+BrandonAL/smolvla_libero_chunk50_test_v2      object         10    50    50   task, dev/debug only).
+────────────────────────────────────────────────────────────────────────────────────────────────
+BrandonAL/libero_eval_06022026v2              object         50     ?    50   Early eval, pre-thesis
+                                                                              pipeline. Ignore.
+================================================================================
+
+COMPARISON STRUCTURE FOR THESIS
+────────────────────────────────
+All 4 processor conditions use identical settings (exec-steps=50, seed=1000, 10 eps/task):
+
+  chunk50_identity  →  chunk50_lowpass_2hz  }  baseline vs smoothed:
+  chunk50_identity  →  chunk50_lowpass_4hz  }  does TC improve?
+  chunk50_identity  →  chunk50_lowpass_6hz  }  does SR drop?
+  chunk50_identity  →  chunk50_ajas         }  proposed method vs baselines
+
+Metrics reported per condition:
+  - Success rate (SR) per suite and overall
+  - Sm_mean (weighted mean frequency, lower = smoother)
+  - SER_mean (signal energy ratio below 1Hz, higher = smoother)
+  - Both computed on proc_actions (after processor applied)
+
+================================================================================

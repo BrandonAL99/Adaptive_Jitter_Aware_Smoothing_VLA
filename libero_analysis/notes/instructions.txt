@@ -1,0 +1,7 @@
+previously to generate the eval_libero datasets i used the lerobot eval script (i used to have a lerobot repo cloned into the thesis folder but now it seems to be gone)
+For this i had made lots of modifications to make it output a dataset.
+I ran the script on cloud gpu to generate the full datasets.
+I now want to remake this script (or maybe find my old modified version from an old git commit fi its there) so that i can run a script and evaluate a model on the libero environemtn. and record success rate and evaluation episodes for TC analysis.
+Then I will be applying a low pass filter and repeatign to see change in performance.
+THen i will be applying my temporal smoothing method and repeat testing.
+

@@ -1,0 +1,7 @@
+LIBERO EVAL DATASETS — TEMPORAL CONSISTENCY METRICS
+Sm  = weighted mean frequency  (lower = smoother)
+SER = signal energy ratio below 1 Hz  (higher = smoother)
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+DATASET: BrandonAL/eval_smolvla_chunk50_libero_object
+════════════════════════════════════════════════════════════════════════════════════════════════════

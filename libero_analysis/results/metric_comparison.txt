@@ -1,0 +1,38 @@
+TC METRIC COMPARISON
+============================================================================================================================================
+
+Convention: higher value = more jitter for ALL metrics
+  (1-SER is listed rather than SER so all metrics point the same way)
+
+Dataset                                             MACD          Jerk           DCC            SE            Sm         1-SER           ADR
+--------------------------------------------------------------------------------------------------------------------------------------------
+real_smooth  (ep0)                               0.28851      16.63205       0.00818       0.31982       0.00347       0.00069       0.32784
+real_jittery (ep1)                               0.41298      53.36723       0.06564       0.30811       0.00477       0.00891       0.30533
+synthetic_clean                                  0.13312     105.62724       0.06693       0.14546       0.00067       0.49340       0.29553
+synthetic_low_jitter                             0.16850    3806.44238       0.35843       0.17613       0.00228       0.50146       0.29914
+synthetic_med_jitter                             0.58620   10837.19499       0.64558       0.50775       0.01013       0.64401       0.29434
+synthetic_high_jitter                            2.32036   15862.66602       0.68173       0.89345       0.04061       0.88780       0.61639
+--------------------------------------------------------------------------------------------------------------------------------------------
+Discrim. power (real)                              0.431         2.209         7.026        -0.037         0.373        11.994        -0.069
+Monotone on synthetic?                               YES           YES           YES           YES           YES           YES            NO
+
+RANKING by discriminative power (real smooth vs real jittery):
+--------------------------------------------------
+  # 1  1-SER     D = +11.994   [monotone on synthetic]
+  # 2  DCC       D = +7.026   [monotone on synthetic]
+  # 3  Jerk      D = +2.209   [monotone on synthetic]
+  # 4  MACD      D = +0.431   [monotone on synthetic]
+  # 5  Sm        D = +0.373   [monotone on synthetic]
+  # 6  SE        D = -0.037   [monotone on synthetic]
+  # 7  ADR       D = -0.069   [NOT monotone on synthetic]
+
+Notes:
+  D > 0  : metric correctly identifies jittery > smooth
+  D < 0  : metric is inverted (would need flipping)
+  D near 0: poor discriminative power
+
+Dataset details:
+  real_smooth:  1938 frames, 6 joints, 30 fps
+  real_jittery: 1655 frames, 6 joints, 30 fps
+  synthetic:    500 frames, 6 joints, sine + white noise σ = 0 / 0.1 / 0.5 / 2.0
+  SER threshold: 1.0 Hz

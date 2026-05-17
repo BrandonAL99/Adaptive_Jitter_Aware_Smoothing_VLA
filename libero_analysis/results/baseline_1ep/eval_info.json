@@ -1,0 +1,37 @@
+{
+  "model": "HuggingFaceVLA/smolvla_libero",
+  "episodes": 1,
+  "per_task": [
+    {
+      "suite": "libero_object",
+      "task_id": 0,
+      "task_name": "pick_up_the_alphabet_soup_and_place_it_in_the_basket",
+      "n_episodes": 1,
+      "success_rate": 0.0,
+      "n_success": 0,
+      "tc": {
+        "sm_mean": 0.009076386182430117,
+        "ser_mean": 3.975129392523947e-30,
+        "per_ep": [
+          {
+            "sm_mean": 0.009076386182430117,
+            "sm_max": 0.035155404412858936,
+            "ser_mean": 3.975129392523947e-30,
+            "ser_min": 0.0,
+            "T": 10
+          }
+        ]
+      }
+    }
+  ],
+  "overall": {
+    "n_tasks": 1,
+    "success_rate": 0.0,
+    "tc": {
+      "sm_mean": 0.009076386182430117,
+      "ser_mean": 3.975129392523947e-30
+    },
+    "eval_s": 291.23802947998047
+  },
+  "timestamp": "2026-04-18T17:01:22"
+}

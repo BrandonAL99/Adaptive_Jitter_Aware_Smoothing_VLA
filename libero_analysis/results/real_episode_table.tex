@@ -1,0 +1,22 @@
+% Requires \usepackage{siunitx} in preamble
+\begin{table}[h]
+\centering
+\begin{tabular}{l S[table-format=2.5] S[table-format=2.5] c c}
+\toprule
+Metric & {Smooth} & {Jittery} & Monotonic & Response \\
+\midrule
+1$-$SER & 0.00069 & 0.00891 & Yes & Saturating \\
+DCC     & 0.00818 & 0.06564 & Yes & Saturating \\
+Jerk    & 16.63205 & 53.36723 & Yes & Saturating \\
+MACD    & 0.28851  & 0.41298  & Yes & Linear     \\
+Sm      & 0.00347  & 0.00477  & Yes & Linear     \\
+SE      & 0.31982  & 0.30811  & Yes & Saturating \\
+ADR     & 0.32784  & 0.30533  & No  & {---}      \\
+\bottomrule
+\end{tabular}
+\caption{TC metric scores on real smooth and jittery SO-101 episodes, ordered by
+discriminative power. Monotonic indicates whether the metric increases
+consistently with noise level on synthetic data. Response describes the
+metric's behaviour over the synthetic noise sweep (linear vs.\ saturating).}
+\label{tab:tc_real}
+\end{table}

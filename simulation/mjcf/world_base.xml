@@ -1,0 +1,215 @@
+<mujoco model="so101_world_base">
+  <!-- meshdir now points to assets/ so both so101/ and world/meshes/ are accessible -->
+  <compiler angle="radian" autolimits="true" meshdir="../assets"/>
+
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast"/>
+
+  <default>
+    <joint damping="1.0" armature="0.1"/>
+    <geom condim="6" friction="4.0 0.1 0.01" solimp="0.99 0.999 0.001" solref="0.01 1"/>
+    <position kp="100" kv="20"/>
+  </default>
+
+  <asset>
+    <!-- ── Floor texture ────────────────────────────────────────────── -->
+    <texture name="tex_floor" type="2d" builtin="checker"
+             rgb1="0.3 0.3 0.3" rgb2="0.4 0.4 0.4" width="64" height="64"/>
+    <material name="mat_floor" texture="tex_floor" texrepeat="4 4"/>
+
+    <!-- ── World meshes (OnShape OBJ, Y-up) ────────────────────────────
+         inertia="shell" tells MuJoCo to treat as surface (no solid volume).
+         All geoms use euler="1.5708 0 0" pos="-0.75 -0.375 0.07" to
+         rotate Y-up → Z-up and align desk top to z=0.81                 -->
+    <mesh name="desk"                file="world/meshes/desk.obj"                inertia="shell"/>
+    <mesh name="desk_mat_mesh"       file="world/meshes/desk_mat.obj"            inertia="shell"/>
+    <mesh name="cam_overhead_holder" file="world/meshes/cam_overhead_holder.obj" inertia="shell"/>
+    <mesh name="cam_overhead_mesh"   file="world/meshes/cam_overhead.obj"        inertia="shell"/>
+    <mesh name="box_mesh"            file="world/meshes/box.obj"                 inertia="shell"/>
+
+    <!-- ── SO-101 meshes ─────────────────────────────────────────────── -->
+    <mesh name="base_motor_holder_so101_v1"        file="so101/base_motor_holder_so101_v1.stl"/>
+    <mesh name="base_so101_v2"                     file="so101/base_so101_v2.stl"/>
+    <mesh name="sts3215_03a_v1"                    file="so101/sts3215_03a_v1.stl"/>
+    <mesh name="waveshare_mounting_plate_so101_v2" file="so101/waveshare_mounting_plate_so101_v2.stl"/>
+    <mesh name="motor_holder_so101_base_v1"        file="so101/motor_holder_so101_base_v1.stl"/>
+    <mesh name="rotation_pitch_so101_v1"           file="so101/rotation_pitch_so101_v1.stl"/>
+    <mesh name="upper_arm_so101_v1"                file="so101/upper_arm_so101_v1.stl"/>
+    <mesh name="under_arm_so101_v1"                file="so101/under_arm_so101_v1.stl"/>
+    <mesh name="motor_holder_so101_wrist_v1"       file="so101/motor_holder_so101_wrist_v1.stl"/>
+    <mesh name="sts3215_03a_no_horn_v1"            file="so101/sts3215_03a_no_horn_v1.stl"/>
+    <mesh name="wrist_roll_pitch_so101_v2"         file="so101/wrist_roll_pitch_so101_v2.stl"/>
+    <mesh name="wrist_roll_follower_so101_v1"      file="so101/wrist_roll_follower_so101_v1_cam.stl"/>
+    <mesh name="moving_jaw_so101_v1"               file="so101/moving_jaw_so101_v1.stl"/>
+    <mesh name="wrist_cam"                         file="so101/wrist_cam.stl"/>
+  </asset>
+
+  <worldbody>
+    <!-- ── Lighting ──────────────────────────────────────────────────── -->
+    <light name="light_overhead" pos="0 0 2.0" dir="0 0 -1"
+           diffuse="0.8 0.8 0.8" specular="0.2 0.2 0.2" castshadow="true"/>
+    <light name="light_fill" pos="-0.8 0.5 1.5" dir="0.5 -0.3 -1"
+           diffuse="0.3 0.3 0.3" specular="0.0 0.0 0.0" castshadow="false"/>
+
+    <!-- ── Floor ─────────────────────────────────────────────────────── -->
+    <geom name="floor" type="plane" size="2 2 0.1" material="mat_floor"
+          contype="1" conaffinity="1"/>
+
+    <!-- ── Desk: OBJ visual + invisible collision surface ───────────────
+         euler="1.5708 0 0" rotates Y-up OBJ → Z-up MuJoCo
+         pos="-0.75 -0.375 0.07" centres desk and puts top at z=0.81     -->
+    <geom name="desk_visual" type="mesh" mesh="desk"
+          euler="1.5708 0 0" pos="-0.75 -0.375 0.07"
+          rgba="0.08 0.08 0.08 1" contype="0" conaffinity="0"/>
+    <geom name="desk_collision" type="box" size="0.75 0.375 0.005"
+          pos="0 0 0.805" rgba="0 0 0 0" contype="1" conaffinity="1"/>
+
+    <!-- ── Mat: OBJ visual + invisible collision surface ─────────────── -->
+    <geom name="mat_visual" type="mesh" mesh="desk_mat_mesh"
+          euler="1.5708 0 0" pos="-0.75 -0.375 0.07"
+          rgba="0.302 0.302 0.302 1" contype="0" conaffinity="0"/>
+    <geom name="mat_collision" type="cylinder" size="0.18 0.002"
+          pos="0 0 0.812" rgba="0 0 0 0" contype="1" conaffinity="1"/>
+
+    <!-- ── Camera holder: OBJ visual only ────────────────────────────── -->
+    <geom name="cam_overhead_holder_visual" type="mesh" mesh="cam_overhead_holder"
+          euler="1.5708 0 0" pos="-0.75 -0.375 0.07"
+          rgba="0.078 0.078 0.078 1" contype="0" conaffinity="0"/>
+
+    <!-- ── Overhead camera body: OBJ visual only ─────────────────────── -->
+    <geom name="cam_overhead_visual" type="mesh" mesh="cam_overhead_mesh"
+          euler="1.5708 0 0" pos="-0.75 -0.375 0.07"
+          rgba="0.15 0.15 0.15 1" contype="0" conaffinity="0"/>
+
+    <!-- ── SO-101 robot ───────────────────────────────────────────────
+         pos: robot mount point on desk surface (z=0.81).              -->
+    <body name="robot_base" pos="-0.1 -0.35 0.818" euler="0 0 1.5708">
+      <geom pos="-0.00636471 -9.94414e-05 -0.0024" quat="0.499998 0.5 0.500002 0.5"
+            type="mesh" rgba="0.08 0.2 0.04 1" mesh="base_motor_holder_so101_v1"/>
+      <geom pos="-0.00636471 -8.97657e-09 -0.0024" quat="0.499998 0.5 0.500002 0.5"
+            type="mesh" rgba="0.08 0.2 0.04 1" mesh="base_so101_v2"/>
+      <geom pos="0.0263353 -8.97657e-09 0.0437" quat="1 0 0 0"
+            type="mesh" rgba="0.08 0.2 0.04 1" mesh="sts3215_03a_v1"/>
+      <geom pos="-0.0309827 -0.000199441 0.0474" quat="0.499998 0.5 0.500002 0.5"
+            type="mesh" rgba="0.08 0.2 0.04 1" mesh="waveshare_mounting_plate_so101_v2"/>
+
+      <body name="shoulder_link" pos="0.0388353 -8.97657e-09 0.0624"
+            quat="1.76036e-12 1.32679e-06 -1 -1.32679e-06">
+        <inertial pos="-0.0307604 -1.66727e-05 -0.0252713"
+                  quat="0.999865 0.00149563 0.0097084 0.0132043"
+                  mass="0.100006" diaginertia="8.37836e-05 8.10388e-05 2.39552e-05"/>
+        <joint name="shoulder_pan" pos="0 0 0" axis="0 0 1"
+               range="-1.91986 1.91986" actuatorfrcrange="-50 50"/>
+        <geom pos="-0.0303992 0.000422241 -0.0417" quat="0.499998 0.5 0.5 -0.500002"
+              type="mesh" rgba="0.08 0.2 0.04 1" mesh="sts3215_03a_v1"/>
+        <geom pos="-0.0675992 -0.000177759 0.0158499" quat="0.499998 0.5 -0.5 0.500002"
+              type="mesh" rgba="0.08 0.2 0.04 1" mesh="motor_holder_so101_base_v1"/>
+        <geom pos="0.0122008 2.22413e-05 0.0464" quat="0.707105 -0.707108 0 0"
+              type="mesh" rgba="0.08 0.2 0.04 1" mesh="rotation_pitch_so101_v1"/>
+
+        <body name="upper_arm_link" pos="-0.0303992 -0.0182778 -0.0542"
+              quat="0.499998 -0.5 -0.5 -0.500002">
+          <inertial pos="-0.0898471 -0.00838224 0.0184089"
+                    quat="0.453195 0.454063 0.541891 0.542951"
+                    mass="0.103" diaginertia="0.000150873 0.000142487 3.72451e-05"/>
+          <joint name="shoulder_lift" pos="0 0 0" axis="0 0 1"
+                 range="-1.74533 1.74533" actuatorfrcrange="-10 10"/>
+          <geom pos="-0.11257 -0.0155 0.0187"
+                quat="9.38184e-07 -0.707105 0.707108 -9.38187e-07"
+                type="mesh" rgba="0.08 0.2 0.04 1" mesh="sts3215_03a_v1"/>
+          <geom pos="-0.065085 0.012 0.0182" quat="1.32679e-06 1 0 0"
+                type="mesh" rgba="0.08 0.2 0.04 1" mesh="upper_arm_so101_v1"/>
+
+          <body name="lower_arm_link" pos="-0.11257 -0.028 0" quat="0.707105 0 0 0.707108">
+            <inertial pos="-0.0980701 0.00324376 0.0182831"
+                      quat="0.510729 0.517006 0.487966 0.483477"
+                      mass="0.104" diaginertia="0.000160262 0.000145304 2.83125e-05"/>
+            <joint name="elbow_flex" pos="0 0 0" axis="0 0 1"
+                   range="-1.69 1.69" actuatorfrcrange="-10 10"/>
+            <geom pos="-0.0648499 -0.032 0.0182" quat="1.32679e-06 1 0 0"
+                  type="mesh" rgba="0.08 0.2 0.04 1" mesh="under_arm_so101_v1"/>
+            <geom pos="-0.0648499 -0.032 0.018" quat="1.32679e-06 -1 0 0"
+                  type="mesh" rgba="0.08 0.2 0.04 1" mesh="motor_holder_so101_wrist_v1"/>
+            <geom pos="-0.1224 0.0052 0.0187"
+                  quat="1.76034e-12 -1.32679e-06 1 -1.32679e-06"
+                  type="mesh" rgba="0.08 0.2 0.04 1" mesh="sts3215_03a_v1"/>
+
+            <body name="wrist_link" pos="-0.1349 0.0052 0" quat="0.707105 0 0 -0.707108">
+              <inertial pos="-0.000103312 -0.0386143 0.0281156"
+                        quat="0.967143 0.254226 0.00162226 -0.000146307"
+                        mass="0.079" diaginertia="3.68265e-05 2.74474e-05 1.89434e-05"/>
+              <joint name="wrist_flex" pos="0 0 0" axis="0 0 1"
+                     range="-1.65806 1.65806" actuatorfrcrange="-10 10"/>
+              <geom pos="0 -0.0424 0.0306" quat="0.499998 0.5 0.5 -0.500002"
+                    type="mesh" rgba="0.08 0.2 0.04 1" mesh="sts3215_03a_no_horn_v1"/>
+              <geom pos="0 -0.028 0.0181" quat="0.499998 -0.5 -0.5 -0.500002"
+                    type="mesh" rgba="0.08 0.2 0.04 1" mesh="wrist_roll_pitch_so101_v2"/>
+
+              <body name="gripper_link" pos="0 -0.0611 0.0181"
+                    quat="0.0172101 -0.0172081 0.706899 0.706896">
+                <inertial pos="0.000213627 0.000245138 -0.025187"
+                          quat="0.600717 0.355993 0.35863 0.61951"
+                          mass="0.087" diaginertia="4.33735e-05 3.77229e-05 2.42839e-05"/>
+                <joint name="wrist_roll" pos="0 0 0" axis="0 0 1"
+                       range="-2.74385 2.84121" actuatorfrcrange="-10 10"/>
+                <geom pos="0.0077 0.0001 -0.0234" quat="0.707105 -0.707108 0 0"
+                      type="mesh" rgba="0.08 0.2 0.04 1" mesh="sts3215_03a_v1"/>
+                <geom pos="0 -0.000218214 0.000949706" quat="1.32679e-06 -1 0 0"
+                      type="mesh" rgba="0.08 0.2 0.04 1" mesh="wrist_roll_follower_so101_v1"
+                      contype="0" conaffinity="0"/>
+                <geom name="fixed_finger_col" type="box" size="0.002 0.006 0.008" 
+                      pos="-0.0099 -0.00430 -0.09860"
+                      rgba="0 0 0 0" contype="1" conaffinity="1"/>
+                <geom pos="0 0 0" quat="1.32679e-06 -1 0 0"
+                      type="mesh" rgba="0.2 0.2 0.2 1" mesh="wrist_cam"/>
+            
+                <!-- Wrist camera attached to cam mount on wrist_roll_follower -->
+                <camera name="camera_wrist" pos="0 -0.0666 -0.00613" euler="0.436 0 3.141592" fovy="69.5"/>
+                
+
+                <body name="moving_jaw_so101_v1_link" pos="0.0202 0.0188 -0.0234"
+                      quat="0.707105 0.707108 -1.85362e-08 1.85363e-08">
+                  <inertial pos="-0.00157495 -0.0300244 0.0192755"
+                            quat="0.695265 0.717965 -0.0245618 -0.0230097"
+                            mass="0.012" diaginertia="6.63582e-06 5.29092e-06 1.86523e-06"/>
+                  <joint name="gripper" pos="0 0 0" axis="0 0 1"
+                         range="-0.174533 1.74533" actuatorfrcrange="-10 10"/>
+                  <geom pos="0 0 0.0189" quat="1 0 0 0"
+                        type="mesh" rgba="0.2 0.2 0.2 1" mesh="moving_jaw_so101_v1"
+                        contype="0" conaffinity="0"/>
+                  <geom name="moving_finger_col" type="box" size="0.002 0.008 0.006"
+                        pos="-0.01 -0.078 0.02"
+                        rgba="0 0 0 0" contype="1" conaffinity="1"/>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- ── Cameras ───────────────────── ─────────────────────────── 0.768599-->
+
+    <camera name="camera_overhead" pos="0 -0.1 1.28200246" euler="0 0 3.141592" fovy="69.5"/>
+  </worldbody>
+
+  <!-- ── Disable self-collision between adjacent arm links ───────── -->
+  <contact>
+    <exclude body1="robot_base"    body2="shoulder_link"/>
+    <exclude body1="shoulder_link" body2="upper_arm_link"/>
+    <exclude body1="upper_arm_link" body2="lower_arm_link"/>
+    <exclude body1="lower_arm_link" body2="wrist_link"/>
+    <exclude body1="wrist_link"    body2="gripper_link"/>
+    <exclude body1="gripper_link"  body2="moving_jaw_so101_v1_link"/>
+  </contact>
+
+  <!-- ── Position actuators ────────────────────────────────────────── -->
+  <actuator>
+    <position name="act_shoulder_pan"  joint="shoulder_pan"  ctrlrange="-1.91986  1.91986"/>
+    <position name="act_shoulder_lift" joint="shoulder_lift" ctrlrange="-1.74533  1.74533"/>
+    <position name="act_elbow_flex"    joint="elbow_flex"    ctrlrange="-1.69     1.69"/>
+    <position name="act_wrist_flex"    joint="wrist_flex"    ctrlrange="-1.65806  1.65806"/>
+    <position name="act_wrist_roll"    joint="wrist_roll"    ctrlrange="-2.74385  2.84121"/>
+    <position name="act_gripper"       joint="gripper"       ctrlrange="-0.174533 1.74533"/>
+  </actuator>
+
+</mujoco>

@@ -1,0 +1,35 @@
+<mujoco model="stacking">
+  <!--
+    Task: pick up the red cube and stack it on top of the blue cube.
+    Success: 0.5 for grasping red cube, 0.5 for stacking on blue.
+    No boxes — two cubes side by side, red on left or right of blue.
+  -->
+  <include file="world_base.xml"/>
+
+  <asset>
+    <material name="mat_cube_red"  rgba="0.85 0.12 0.12 1"/>
+    <material name="mat_cube_blue" rgba="0.12 0.25 0.85 1"/>
+  </asset>
+
+  <worldbody>
+    <!-- Initial positions overridden by stacking_env.py _reset_scene() -->
+
+    <!-- ── Blue cube (stacking target / base) ───────────────────────── -->
+    <body name="cube_blue" pos="0.03 -0.125 0.829">
+      <freejoint name="cube_blue_joint"/>
+      <geom name="cube_blue_geom" type="box" size="0.015 0.015 0.015"
+            material="mat_cube_blue" mass="0.05"
+            contype="1" conaffinity="1" condim="6" friction="4.0 0.5 0.05"/>
+    </body>
+
+    <!-- ── Red cube (to be grasped and stacked on blue) ─────────────── -->
+    <body name="cube_red" pos="-0.03 -0.125 0.829">
+      <freejoint name="cube_red_joint"/>
+      <geom name="cube_red_geom" type="box" size="0.015 0.015 0.015"
+            material="mat_cube_red" mass="0.05"
+            contype="1" conaffinity="1" condim="6" friction="4.0 0.5 0.05"/>
+    </body>
+
+  </worldbody>
+
+</mujoco>

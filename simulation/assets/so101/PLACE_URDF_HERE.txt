@@ -1,0 +1,25 @@
+Place the SO-101 URDF and mesh files here.
+
+Source options:
+  1. LeRobot repo: lerobot/common/robot_devices/robots/configs/so101.urdf
+     (may be in the lerobot/ subdir already — check lerobot/lerobot/)
+  2. HuggingFace Hub: huggingface.co/lerobot/so101
+  3. TheRobotStudio GitHub: github.com/TheRobotStudio/SO-ARM100
+
+Expected structure after placing files:
+  so101/
+  ├── so101.urdf          <- main robot description
+  └── meshes/
+      ├── base_link.stl
+      ├── shoulder_link.stl
+      ├── upper_arm_link.stl
+      ├── forearm_link.stl
+      ├── wrist_link.stl
+      ├── gripper_link.stl
+      └── ...             <- one .stl per link
+
+After placing the URDF, update the <include> path in mjcf/world_base.xml
+and verify joint names match SO101BaseEnv.JOINT_NAMES in envs/base_env.py.
+
+To convert URDF to MJCF (recommended for better physics):
+  python scripts/convert_urdf_to_mjcf.py

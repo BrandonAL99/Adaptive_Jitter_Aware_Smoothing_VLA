@@ -1,0 +1,10 @@
+numpy
+scipy
+matplotlib
+pandas
+openpyxl
+huggingface_hub
+torch
+# lerobot must be installed separately:
+#   git clone https://github.com/huggingface/lerobot.git
+#   pip install -e "lerobot[smolvla]"

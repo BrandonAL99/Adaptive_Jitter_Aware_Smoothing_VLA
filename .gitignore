@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.log
+nohup.out
+
+# large eval result blobs
+results/eval_*/
+results/200k_run/
+*.npz
+
+# third-party
+lerobot/
+
+# local IDE / OS
+.vscode/
+.idea/
+.DS_Store
